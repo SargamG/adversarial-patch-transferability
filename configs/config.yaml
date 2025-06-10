@@ -1,7 +1,7 @@
 ### 0. Experiment
 experiment:
   name: "Experiments"
-  log_patch_address: "/content/drive/MyDrive/Colab Notebooks/1_Papers/3_Attack_generation/Experiments/"
+  log_patch_address: "/kaggle/working/"
   device: "cuda"
 
 ### 1.Model
@@ -11,7 +11,7 @@ model:
 ### 2. Data
 dataset:
   name: "cityscapes"
-  root: "/content/drive/MyDrive/Data/Self_driving/SemanticSeg/Cityscapes/"
+  root: "/kaggle/input/cityscapes-for-segmentation/Cityscapes/"
   train: "train.txt"
   test: "test.txt"
   val: "val.txt"
