@@ -4,7 +4,7 @@ import numpy as np
 import math
 import torch
 import sys
-sys.path.append('/content/drive/MyDrive/Colab Notebooks/1_Papers/3_Attack_generation')
+sys.path.append('/kaggle/working/adversarial-patch-transferability')
 from utils.dirs import create_dirs
 import datetime
 import os
