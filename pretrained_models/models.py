@@ -1,6 +1,6 @@
 import sys
 import torch
-sys.path.append("/content/drive/MyDrive/Colab Notebooks/1_Papers/3_Attack_generation")
+sys.path.append("/kaggle/working/adversarial-patch-transferability")
 from pretrained_models.ICNet.icnet import ICNet
 from pretrained_models.BisNetV1.model import BiSeNetV1
 from pretrained_models.BisNetV2.model import BiSeNetV2
@@ -18,11 +18,11 @@ class Models():
   def get(self):
     if 'pidnet' in self.config.model.name:
       if '_s' in self.config.model.name:
-        model = torch.load('/content/drive/MyDrive/Colab Notebooks/1_Papers/3_Attack_generation/pretrained_models/PIDNet/PIDNet_S_Cityscapes_test.pt',map_location=self.device)
+        model = torch.load('/kaggle/working/adversarial-patch-transferability/pretrained_models/PIDNet/PIDNet_S_Cityscapes_test.pt',map_location=self.device)
       if '_m' in self.config.model.name:
-        model = torch.load('/content/drive/MyDrive/Colab Notebooks/1_Papers/3_Attack_generation/pretrained_models/PIDNet/PIDNet_M_Cityscapes_test.pt',map_location=self.device)
+        model = torch.load('/kaggle/working/adversarial-patch-transferability/pretrained_models/PIDNet/PIDNet_M_Cityscapes_test.pt',map_location=self.device)
       if '_l' in self.config.model.name:
-        model = torch.load('/content/drive/MyDrive/Colab Notebooks/1_Papers/3_Attack_generation/pretrained_models/PIDNet/PIDNet_L_Cityscapes_test.pt',map_location=self.device)
+        model = torch.load('/kaggle/working/adversarial-patch-transferability/pretrained_models/PIDNet/PIDNet_L_Cityscapes_test.pt',map_location=self.device)
       
   
       pidnet = get_pred_model(name = self.config.model.name, num_classes = 19).to(self.device)
@@ -39,11 +39,11 @@ class Models():
 
     if 'bisenet' in self.config.model.name:
       if '_v1' in self.config.model.name:
-        model = torch.load('/content/drive/MyDrive/Colab Notebooks/1_Papers/3_Attack_generation/pretrained_models/BisNetV1/bisnetv1.pth',map_location=self.device)
+        model = torch.load('/kaggle/working/adversarial-patch-transferability/pretrained_models/BisNetV1/bisnetv1.pth',map_location=self.device)
         bisenet = BiSeNetV1(19,aux_mode = 'eval').to(self.device)
         bisenet.load_state_dict(model, strict=False)
       if '_v2' in self.config.model.name:
-        model = torch.load('/content/drive/MyDrive/Colab Notebooks/1_Papers/3_Attack_generation/pretrained_models/BisNetV2/bisnetv2.pth',map_location=self.device)
+        model = torch.load('/kaggle/working/adversarial-patch-transferability/pretrained_models/BisNetV2/bisnetv2.pth',map_location=self.device)
         bisenet = BiSeNetV2(19,aux_mode = 'eval').to(self.device)
         bisenet.load_state_dict(model, strict=False)
       self.model = bisenet
@@ -51,7 +51,7 @@ class Models():
 
 
     if 'icnet' in self.config.model.name:
-      model = torch.load('/content/drive/MyDrive/Colab Notebooks/1_Papers/3_Attack_generation/pretrained_models/ICNet/Copy of resnet50_2024-12-22 08:52:50 EST-0500_176_0.661.pth.tar',map_location=self.device)
+      model = torch.load('/kaggle/working/adversarial-patch-transferability/pretrained_models/ICNet/Copy of resnet50_2024-12-22 08:52:50 EST-0500_176_0.661.pth.tar',map_location=self.device)
       icnet = ICNet(nclass = 19).to(self.device)
       icnet.load_state_dict(model['model_state_dict'])
       self.model = icnet
