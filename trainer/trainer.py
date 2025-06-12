@@ -219,7 +219,7 @@ def get_agg_gradient(self):
           #break
 
           # Compute adaptive loss
-          loss = self.criterion.compute_trainloss(output, patched_label)
+          loss = self.criterion.compute_trainloss(F)
           #loss = self.criterion.compute_loss_direct(output, patched_label)
           total_loss += loss.item()
           #break
