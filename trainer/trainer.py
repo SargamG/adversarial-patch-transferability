@@ -84,8 +84,8 @@ class PatchTrainer():
       self.model.get()
 
       ## loss
-      self.criterion = PatchLoss(self.config)
-
+      self.grad_criterion = PatchLoss(self.config)
+      self.train_criterion = 
       ## optimizer
       # Initialize adversarial patch (random noise)
       self.patch = torch.rand((3, self.patch_size, self.patch_size), 
@@ -151,7 +151,7 @@ def get_agg_gradient(self):
         output = self.model.predict(patched_image,patched_label.shape)
 
         # 3. Compute CE loss
-        loss = self.criterion.compute_loss(output, patched_label)
+        loss = self.grad_criterion.compute_loss(output, patched_label)
 
         # 4. Compute gradient w.r.t. patch and update patch
         self.model.model.zero_grad()
@@ -177,10 +177,11 @@ def get_agg_gradient(self):
         del patched_image, output, grad_feature_map
         torch.cuda.empty_cache()
 
-  print(f"Epoch {epoch+1}/30 done.")
-  
+    print(f"Epoch {epoch+1}/30 done.")
+  print(H.shape)
+  return H
 
-  def train(self):
+  def train(self, H):
     epochs, iters_per_epoch, max_iters = self.epochs, self.iters_per_epoch, self.max_iters
 
     start_time = time.time()
@@ -191,10 +192,11 @@ def get_agg_gradient(self):
       self.metric.reset()
       total_loss = 0
       samplecnt = 0
+      momentum = torch.tensor(0, dtype=torch.float32)
       for i_iter, batch in enumerate(self.train_dataloader, 0):
           self.current_iteration += 1
           samplecnt += batch[0].shape[0]
-          image, true_label,_, _, _ = batch
+          image, true_label,_, _, _, idx = batch
           image, true_label = image.to(self.device), true_label.to(self.device)
           
 
@@ -211,12 +213,14 @@ def get_agg_gradient(self):
 
           # Forward pass through the model (and interpolation if needed)
           output = self.model.predict(patched_image,patched_label.shape)
+          for i in range(image.shape[0]):
+          F = (feature_maps[i]*H[idx[i]]) + (H[idx[i]])**2
           #plt.imshow(output.argmax(dim =1)[0].cpu().detach().numpy())
           #plt.show()
           #break
 
           # Compute adaptive loss
-          loss = self.criterion.compute_loss(output, patched_label)
+          loss = self.train_criterion.compute_loss(output, patched_label)
           #loss = self.criterion.compute_loss_direct(output, patched_label)
           total_loss += loss.item()
           #break
@@ -232,7 +236,11 @@ def get_agg_gradient(self):
           loss.backward()
           with torch.no_grad():
               #self.patch += self.epsilon * self.patch.grad.sign()  # Update patch using FGSM-style ascent
-              self.patch += self.epsilon * self.patch.grad.data.sign()
+              grad = self.patch.grad
+              norm_grad = grad/ torch.norm(grad)
+              momentum += norm_grad
+              self.patch += self.epsilon * momentum.sign()
+              #self.patch += self.epsilon * self.patch.grad.data.sign()
               self.patch.clamp_(0, 1)  # Keep pixel values in valid range
 
           ## ETA
