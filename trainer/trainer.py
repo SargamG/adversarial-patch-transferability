@@ -84,8 +84,7 @@ class PatchTrainer():
       self.model.get()
 
       ## loss
-      self.grad_criterion = PatchLoss(self.config)
-      self.train_criterion = 
+      self.criterion = PatchLoss(self.config)
       ## optimizer
       # Initialize adversarial patch (random noise)
       self.patch = torch.rand((3, self.patch_size, self.patch_size), 
@@ -151,7 +150,7 @@ def get_agg_gradient(self):
         output = self.model.predict(patched_image,patched_label.shape)
 
         # 3. Compute CE loss
-        loss = self.grad_criterion.compute_loss(output, patched_label)
+        loss = self.criterion.compute_gradloss(output, patched_label)
 
         # 4. Compute gradient w.r.t. patch and update patch
         self.model.model.zero_grad()
@@ -220,7 +219,7 @@ def get_agg_gradient(self):
           #break
 
           # Compute adaptive loss
-          loss = self.train_criterion.compute_loss(output, patched_label)
+          loss = self.criterion.compute_trainloss(output, patched_label)
           #loss = self.criterion.compute_loss_direct(output, patched_label)
           total_loss += loss.item()
           #break
