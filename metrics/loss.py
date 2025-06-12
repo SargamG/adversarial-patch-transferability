@@ -50,19 +50,14 @@ class PatchLoss(nn.Module):
         #return loss
         return loss_correct 
 
-def compute_trainloss(self, model_output, label):
+def compute_trainloss(self, F):
         """
         Compute the adaptive loss function
         """
 
         #print(model_output.shape,true_labels.shape)
         #print(model_output.argmax(dim=1).shape)
-        ce_loss = nn.CrossEntropyLoss(reduction="none",
-                                      ignore_index=self.config.train.ignore_label)  # Per-pixel loss
-        loss_map = ce_loss(model_output, label.long())  # Compute loss for all pixels
-        #print(f'loss map: {loss_map.shape}')
               
-      
         # Get correctly classified and misclassified pixel sets
         predict = torch.argmax(model_output, 1).float() + 1
         target = label.float() + 1
