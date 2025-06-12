@@ -121,14 +121,17 @@ def hook(module, input, output):
 
 # Register hook
 if 'pidnet' in self.config.model.name:
-  self.layer_name = 'layer3'  # Change this to the correct intermediate layer
-  self.feature_map_shape = [256,]
+  self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
+  if '_s' in self.config.name:
+    self.feature_map_shape = [128,64,128]
+  else:
+    self.feature_map_shape = [256,64,128]
 elif 'bisenet' in self.config.model.name:
-  self.layer_name = 'segment'
-  self.feature_map_shape=[]
+  self.layer_name = 'segment.S3.1.relu'
+  self.feature_map_shape=[32,128,256]
 else:
-  self.layer_name = ''
-  self.feature_map_shape=[]
+  self.layer_name = 'pretrained.layer2.3.relu'
+  self.feature_map_shape=[512,32,64]
   
 for name, module in model.named_modules():
     if name == self.layer_name:
