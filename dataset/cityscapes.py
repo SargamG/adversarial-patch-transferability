@@ -113,7 +113,7 @@ class Cityscapes(BaseDataset):
         image, label, edge = self.gen_sample(image, label, 
                                 self.multi_scale, self.flip, edge_size=self.bd_dilate_size)
 
-        return image.copy(), label.copy(), edge.copy(), np.array(size), name
+        return image.copy(), label.copy(), edge.copy(), np.array(size), name, index
 
     
     def single_scale_inference(self, config, model, image):
