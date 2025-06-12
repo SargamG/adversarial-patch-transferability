@@ -191,7 +191,7 @@ def get_agg_gradient(self):
       self.metric.reset()
       total_loss = 0
       samplecnt = 0
-      momentum = torch.tensor(0, dtype=torch.float32)
+      momentum = torch.tensor(0, dtype=torch.float32).to(self.device)
       for i_iter, batch in enumerate(self.train_dataloader, 0):
           self.current_iteration += 1
           samplecnt += batch[0].shape[0]
@@ -213,7 +213,7 @@ def get_agg_gradient(self):
           # Forward pass through the model (and interpolation if needed)
           output = self.model.predict(patched_image,patched_label.shape)
           for i in range(image.shape[0]):
-          F = (feature_maps[i]*H[idx[i]]) + (H[idx[i]])**2
+            F = (feature_maps[i]*H[idx[i]]) + (H[idx[i]])**2
           #plt.imshow(output.argmax(dim =1)[0].cpu().detach().numpy())
           #plt.show()
           #break
@@ -236,8 +236,8 @@ def get_agg_gradient(self):
           with torch.no_grad():
               #self.patch += self.epsilon * self.patch.grad.sign()  # Update patch using FGSM-style ascent
               grad = self.patch.grad
-              norm_grad = grad/ torch.norm(grad)
-              momentum += norm_grad
+              norm_grad = grad/ (torch.norm(grad) + 1e-8)
+              momentum = (0.9*momentum) + norm_grad
               self.patch += self.epsilon * momentum.sign()
               #self.patch += self.epsilon * self.patch.grad.data.sign()
               self.patch.clamp_(0, 1)  # Keep pixel values in valid range
