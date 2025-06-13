@@ -50,7 +50,7 @@ class PatchLoss(nn.Module):
         #return loss
         return loss_correct 
 
-def compute_trainloss(self, F, omega = 1.2):
+    def compute_trainloss(self, F, omega = 1.2):
         """
         Compute the adaptive loss function
         """
