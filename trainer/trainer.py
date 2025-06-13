@@ -109,8 +109,23 @@ class PatchTrainer():
 
       self.current_epoch = 0
       self.current_iteration = 0
+      # Register hook
+      if 'pidnet' in self.config.model.name:
+        self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
+        if '_s' in self.config.name:
+          self.feature_map_shape = [128,64,128]
+        else:
+          self.feature_map_shape = [256,64,128]
+      elif 'bisenet' in self.config.model.name:
+        self.layer_name = 'segment.S3.1.relu'
+        self.feature_map_shape=[32,128,256]
+      else:
+        self.layer_name = 'pretrained.layer2.3.relu'
+        self.feature_map_shape=[512,32,64]
 
-  feature_maps = None
+      for name, module in model.named_modules():
+        if name == self.layer_name:
+          module.register_forward_hook(hook)
 
   # Hook to store feature map
   def hook(module, input, output):
@@ -118,25 +133,8 @@ class PatchTrainer():
       feature_maps = output
       feature_maps.retain_grad()
   
-  # Register hook
-  if 'pidnet' in self.config.model.name:
-    self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
-    if '_s' in self.config.name:
-      self.feature_map_shape = [128,64,128]
-    else:
-      self.feature_map_shape = [256,64,128]
-  elif 'bisenet' in self.config.model.name:
-    self.layer_name = 'segment.S3.1.relu'
-    self.feature_map_shape=[32,128,256]
-  else:
-    self.layer_name = 'pretrained.layer2.3.relu'
-    self.feature_map_shape=[512,32,64]
-    
-  for name, module in model.named_modules():
-      if name == self.layer_name:
-          module.register_forward_hook(hook)
-  
   def get_agg_gradient(self):
+    feature_maps = None
     H = torch.zeros((2975, self.feature_map_shape[0], self.feature_map_shape[1], self.feature_map_shape[2]), device=device)  # Aggregate gradient
     for epoch in range(30):
       for i_iter, batch in enumerate(self.train_dataloader, 0):
@@ -182,7 +180,7 @@ class PatchTrainer():
 
   def train(self, H):
     epochs, iters_per_epoch, max_iters = self.epochs, self.iters_per_epoch, self.max_iters
-
+    feature_maps = None
     start_time = time.time()
     self.logger.info('Start training, Total Epochs: {:d} = Iterations per epoch {:d}'.format(epochs, iters_per_epoch))
     IoU = []
