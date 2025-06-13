@@ -138,7 +138,7 @@ class PatchTrainer():
   
   def get_agg_gradient(self):
     feature_maps = None
-    H = torch.zeros((2975, self.feature_map_shape[0], self.feature_map_shape[1], self.feature_map_shape[2]), device=device)  # Aggregate gradient
+    H = torch.zeros((2975, self.feature_map_shape[0], self.feature_map_shape[1], self.feature_map_shape[2]), device=self.device)  # Aggregate gradient
     for epoch in range(30):
       for i_iter, batch in enumerate(self.train_dataloader, 0):
           image, true_label,_, _, _, idx = batch
