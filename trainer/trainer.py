@@ -125,7 +125,7 @@ class PatchTrainer():
         self.layer_name = 'pretrained.layer2.3.relu'
         self.feature_map_shape=[512,32,64]
 
-      for name, module in self.model.named_modules():
+      for name, module in self.model.model.named_modules():
         if name == self.layer_name:
           module.register_forward_hook(hook)
 
