@@ -112,7 +112,7 @@ class PatchTrainer():
       # Register hook
       if 'pidnet' in self.config.model.name:
         self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
-        if '_s' in self.config.name:
+        if '_s' in self.config.model.name:
           self.feature_map_shape = [128,64,128]
         else:
           self.feature_map_shape = [256,64,128]
