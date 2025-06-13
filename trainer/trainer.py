@@ -110,11 +110,11 @@ class PatchTrainer():
       self.current_epoch = 0
       self.current_iteration = 0
       # Register hook
-      if 'pidnet' in self.config.model.name:
+      if 'pidnet_s' in self.config.model.name:
         self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
-        if '_s' in self.config.model.name:
-          self.feature_map_shape = [128,64,128]
-        else:
+        self.feature_map_shape = [128,64,128]
+      elif 'pidnet_m' in self.config.model.name:
+          self.layer_name = 'layer3.2.bn2'
           self.feature_map_shape = [256,64,128]
       elif 'bisenet' in self.config.model.name:
         self.layer_name = 'segment.S3.1.relu'
