@@ -125,15 +125,16 @@ class PatchTrainer():
         self.layer_name = 'pretrained.layer2.3.relu'
         self.feature_map_shape=[512,32,64]
 
-      for name, module in self.model.model.named_modules():
-        if name == self.layer_name:
-          module.register_forward_hook(hook)
-
   # Hook to store feature map
   def hook(module, input, output):
       global feature_maps
       feature_maps = output
       feature_maps.retain_grad()
+
+  def register_forward_hook(self):
+    for name, module in self.model.model.named_modules():
+        if name == self.layer_name:
+          module.register_forward_hook(hook)
   
   def get_agg_gradient(self):
     feature_maps = None
