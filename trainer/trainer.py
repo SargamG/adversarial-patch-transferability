@@ -109,24 +109,23 @@ class PatchTrainer():
 
       self.current_epoch = 0
       self.current_iteration = 0
-      print("CONFIG MODEL:", self.config.model)
-      print("CONFIG MODEL NAME:", self.config.model.name)
+      print("CONFIG MODEL NAME:", self.model.name)
 
       # Register hook
-      if 'pidnet_s' in self.config.model.name:
+      if 'pidnet_s' in self.model.name:
         self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
         self.feature_map_shape = [128,64,128]
-      elif 'pidnet_m' in self.config.model.name:
+      elif 'pidnet_m' in self.model.name:
           self.layer_name = 'layer3.2.bn2'
           self.feature_map_shape = [256,64,128]
-      elif 'bisenet' in self.config.model.name:
+      elif 'bisenet' in self.model.name:
         self.layer_name = 'segment.S3.1.relu'
         self.feature_map_shape=[32,128,256]
       else:
         self.layer_name = 'pretrained.layer2.3.relu'
         self.feature_map_shape=[512,32,64]
 
-      for name, module in model.named_modules():
+      for name, module in self.model.named_modules():
         if name == self.layer_name:
           module.register_forward_hook(hook)
 
