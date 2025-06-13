@@ -142,6 +142,7 @@ class PatchTrainer():
     self.feature_maps = None
     H = torch.zeros((2975, self.feature_map_shape[0], self.feature_map_shape[1], self.feature_map_shape[2]), device=self.device)  # Aggregate gradient
     for epoch in range(30):
+      self.logger.info(f"\nStarting gradient epoch {epoch+1}/30...")
       for i_iter, batch in enumerate(self.train_dataloader, 0):
           image, true_label,_, _, _, idx = batch
           image, true_label = image.to(self.device), true_label.to(self.device)
@@ -174,13 +175,12 @@ class PatchTrainer():
           # grad_feature_map /= torch.norm(grad_feature_map, p=2, dim=(1,2,3), keepdim=True) + 1e-8
           for i in range(image.shape[0]):
             H[idx[i]] = grad_feature_map[i] if H[idx[i]] is None else H[idx[i]] + grad_feature_map[i].detach()
-  
+          self.logger.info(f" Sample number: {i_iter+1}/2975")
           # Optional: delete big tensors
           del patched_image, output, grad_feature_map
           torch.cuda.empty_cache()
   
-      print(f"Epoch {epoch+1}/30 done.")
-    print(H.shape)
+      
     return H
 
   def train(self, H):
