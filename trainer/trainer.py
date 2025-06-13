@@ -116,8 +116,8 @@ class PatchTrainer():
         self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
         self.feature_map_shape = [128,64,128]
       elif 'pidnet_m' in self.model_name:
-          self.layer_name = 'layer3.2.bn2'
-          self.feature_map_shape = [256,64,128]
+        self.layer_name = 'layer3.2.bn2'
+        self.feature_map_shape = [256,64,128]
       elif 'bisenet' in self.model_name:
         self.layer_name = 'segment.S3.1.relu'
         self.feature_map_shape=[32,128,256]
@@ -125,7 +125,8 @@ class PatchTrainer():
         self.layer_name = 'pretrained.layer2.3.relu'
         self.feature_map_shape=[512,32,64]
 
-  self.feature_maps = None
+      self.feature_maps = None
+    
   # Hook to store feature map
   def hook(self, module, input, output):
       self.feature_maps = output
