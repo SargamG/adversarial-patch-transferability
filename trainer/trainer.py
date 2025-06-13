@@ -109,6 +109,9 @@ class PatchTrainer():
 
       self.current_epoch = 0
       self.current_iteration = 0
+      print("CONFIG MODEL:", self.config.model)
+      print("CONFIG MODEL NAME:", self.config.model.name)
+
       # Register hook
       if 'pidnet_s' in self.config.model.name:
         self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
