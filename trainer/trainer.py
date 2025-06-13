@@ -110,75 +110,75 @@ class PatchTrainer():
       self.current_epoch = 0
       self.current_iteration = 0
 
-feature_maps = None
+  feature_maps = None
 
-# Hook to store feature map
-def hook(module, input, output):
-    global feature_maps
-    feature_maps = output
-    feature_maps.retain_grad()
-
-# Register hook
-if 'pidnet' in self.config.model.name:
-  self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
-  if '_s' in self.config.name:
-    self.feature_map_shape = [128,64,128]
-  else:
-    self.feature_map_shape = [256,64,128]
-elif 'bisenet' in self.config.model.name:
-  self.layer_name = 'segment.S3.1.relu'
-  self.feature_map_shape=[32,128,256]
-else:
-  self.layer_name = 'pretrained.layer2.3.relu'
-  self.feature_map_shape=[512,32,64]
+  # Hook to store feature map
+  def hook(module, input, output):
+      global feature_maps
+      feature_maps = output
+      feature_maps.retain_grad()
   
-for name, module in model.named_modules():
-    if name == self.layer_name:
-        module.register_forward_hook(hook)
-
-def get_agg_gradient(self):
-  H = torch.zeros((2975, self.feature_map_shape[0], self.feature_map_shape[1], self.feature_map_shape[2]), device=device)  # Aggregate gradient
-  for epoch in range(30):
-    for i_iter, batch in enumerate(self.train_dataloader, 0):
-        image, true_label,_, _, _, idx = batch
-        image, true_label = image.to(self.device), true_label.to(self.device)
-
-        # 1. Apply the patch to the image
-        patched_image, patched_label = self.apply_patch(image,true_label,self.patch)
-
-        # 2. Forward pass
-        output = self.model.predict(patched_image,patched_label.shape)
-
-        # 3. Compute CE loss
-        loss = self.criterion.compute_gradloss(output, patched_label)
-
-        # 4. Compute gradient w.r.t. patch and update patch
-        self.model.model.zero_grad()
-        if self.patch.grad is not None:
-            self.patch.grad.zero_()
-        loss.backward(retain_graph=True)
-        with torch.no_grad():
-            self.patch += self.epsilon * self.patch.grad.data.sign()
-            self.patch.clamp_(0, 1)  # Keep pixel values in valid range
-        grad_feature_map = feature_maps.grad  # Only works if feature_maps.requires_grad=True
-
-        # If not requires_grad, use autograd.grad instead
-        if grad_feature_map is None:
-            print("grad_feature_map is None")
-            grad_feature_map = torch.autograd.grad(loss, feature_maps, retain_graph=True)[0]
-
-        # 5. Normalize and aggregate
-        # grad_feature_map /= torch.norm(grad_feature_map, p=2, dim=(1,2,3), keepdim=True) + 1e-8
-        for i in range(image.shape[0]):
-          H[idx[i]] = grad_feature_map[i] if H[idx[i]] is None else H[idx[i]] + grad_feature_map[i].detach()
-
-        # Optional: delete big tensors
-        del patched_image, output, grad_feature_map
-        torch.cuda.empty_cache()
-
-    print(f"Epoch {epoch+1}/30 done.")
-  print(H.shape)
-  return H
+  # Register hook
+  if 'pidnet' in self.config.model.name:
+    self.layer_name = 'layer3.2.bn2'  # Change this to the correct intermediate layer
+    if '_s' in self.config.name:
+      self.feature_map_shape = [128,64,128]
+    else:
+      self.feature_map_shape = [256,64,128]
+  elif 'bisenet' in self.config.model.name:
+    self.layer_name = 'segment.S3.1.relu'
+    self.feature_map_shape=[32,128,256]
+  else:
+    self.layer_name = 'pretrained.layer2.3.relu'
+    self.feature_map_shape=[512,32,64]
+    
+  for name, module in model.named_modules():
+      if name == self.layer_name:
+          module.register_forward_hook(hook)
+  
+  def get_agg_gradient(self):
+    H = torch.zeros((2975, self.feature_map_shape[0], self.feature_map_shape[1], self.feature_map_shape[2]), device=device)  # Aggregate gradient
+    for epoch in range(30):
+      for i_iter, batch in enumerate(self.train_dataloader, 0):
+          image, true_label,_, _, _, idx = batch
+          image, true_label = image.to(self.device), true_label.to(self.device)
+  
+          # 1. Apply the patch to the image
+          patched_image, patched_label = self.apply_patch(image,true_label,self.patch)
+  
+          # 2. Forward pass
+          output = self.model.predict(patched_image,patched_label.shape)
+  
+          # 3. Compute CE loss
+          loss = self.criterion.compute_gradloss(output, patched_label)
+  
+          # 4. Compute gradient w.r.t. patch and update patch
+          self.model.model.zero_grad()
+          if self.patch.grad is not None:
+              self.patch.grad.zero_()
+          loss.backward(retain_graph=True)
+          with torch.no_grad():
+              self.patch += self.epsilon * self.patch.grad.data.sign()
+              self.patch.clamp_(0, 1)  # Keep pixel values in valid range
+          grad_feature_map = feature_maps.grad  # Only works if feature_maps.requires_grad=True
+  
+          # If not requires_grad, use autograd.grad instead
+          if grad_feature_map is None:
+              print("grad_feature_map is None")
+              grad_feature_map = torch.autograd.grad(loss, feature_maps, retain_graph=True)[0]
+  
+          # 5. Normalize and aggregate
+          # grad_feature_map /= torch.norm(grad_feature_map, p=2, dim=(1,2,3), keepdim=True) + 1e-8
+          for i in range(image.shape[0]):
+            H[idx[i]] = grad_feature_map[i] if H[idx[i]] is None else H[idx[i]] + grad_feature_map[i].detach()
+  
+          # Optional: delete big tensors
+          del patched_image, output, grad_feature_map
+          torch.cuda.empty_cache()
+  
+      print(f"Epoch {epoch+1}/30 done.")
+    print(H.shape)
+    return H
 
   def train(self, H):
     epochs, iters_per_epoch, max_iters = self.epochs, self.iters_per_epoch, self.max_iters
