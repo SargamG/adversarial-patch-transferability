@@ -134,7 +134,7 @@ class PatchTrainer():
   def register_forward_hook(self):
     for name, module in self.model.model.named_modules():
         if name == self.layer_name:
-          module.register_forward_hook(hook)
+          module.register_forward_hook(self.hook)
   
   def get_agg_gradient(self):
     feature_maps = None
