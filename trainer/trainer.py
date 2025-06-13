@@ -125,19 +125,20 @@ class PatchTrainer():
         self.layer_name = 'pretrained.layer2.3.relu'
         self.feature_map_shape=[512,32,64]
 
+  self.feature_maps = None
   # Hook to store feature map
-  def hook(module, input, output):
-      global feature_maps
-      feature_maps = output
-      feature_maps.retain_grad()
+  def hook(self, module, input, output):
+      self.feature_maps = output
+      output.retain_grad()
 
   def register_forward_hook(self):
     for name, module in self.model.model.named_modules():
         if name == self.layer_name:
           module.register_forward_hook(self.hook)
+          break
   
   def get_agg_gradient(self):
-    feature_maps = None
+    self.feature_maps = None
     H = torch.zeros((2975, self.feature_map_shape[0], self.feature_map_shape[1], self.feature_map_shape[2]), device=self.device)  # Aggregate gradient
     for epoch in range(30):
       for i_iter, batch in enumerate(self.train_dataloader, 0):
@@ -161,12 +162,12 @@ class PatchTrainer():
           with torch.no_grad():
               self.patch += self.epsilon * self.patch.grad.data.sign()
               self.patch.clamp_(0, 1)  # Keep pixel values in valid range
-          grad_feature_map = feature_maps.grad  # Only works if feature_maps.requires_grad=True
+          grad_feature_map = self.feature_maps.grad  # Only works if feature_maps.requires_grad=True
   
           # If not requires_grad, use autograd.grad instead
           if grad_feature_map is None:
               print("grad_feature_map is None")
-              grad_feature_map = torch.autograd.grad(loss, feature_maps, retain_graph=True)[0]
+              grad_feature_map = torch.autograd.grad(loss, self.feature_maps, retain_graph=True)[0]
   
           # 5. Normalize and aggregate
           # grad_feature_map /= torch.norm(grad_feature_map, p=2, dim=(1,2,3), keepdim=True) + 1e-8
@@ -183,7 +184,7 @@ class PatchTrainer():
 
   def train(self, H):
     epochs, iters_per_epoch, max_iters = self.epochs, self.iters_per_epoch, self.max_iters
-    feature_maps = None
+    self.feature_maps = None
     start_time = time.time()
     self.logger.info('Start training, Total Epochs: {:d} = Iterations per epoch {:d}'.format(epochs, iters_per_epoch))
     IoU = []
@@ -214,7 +215,7 @@ class PatchTrainer():
           # Forward pass through the model (and interpolation if needed)
           output = self.model.predict(patched_image,patched_label.shape)
           for i in range(image.shape[0]):
-            F = (feature_maps[i]*H[idx[i]]) + (H[idx[i]])**2
+            F = (self.feature_maps[i]*H[idx[i]]) + (H[idx[i]])**2
           #plt.imshow(output.argmax(dim =1)[0].cpu().detach().numpy())
           #plt.show()
           #break
