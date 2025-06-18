@@ -54,10 +54,8 @@ class PatchLoss(nn.Module):
         """
         Compute the adaptive loss function
         """
-        pos = F[F > 0].sum()
-        neg = F[F <= 0].sum()
         # Final adaptive loss
-        loss = pos + (omega*neg)
+        loss = F.sum()
         return loss
 
     def compute_loss_direct(self, model_output, label):
