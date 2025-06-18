@@ -202,7 +202,9 @@ class PatchTrainer():
 
   def train(self, H):
     epochs, iters_per_epoch, max_iters = self.epochs, self.iters_per_epoch, self.max_iters
-    self.feature_maps = None
+    self.feature_maps_adv = None
+    self.feature_maps_rand = None
+    H /= torch.norm(H, p=2, dim=(2,3), keepdim=True) + 1e-8 
     start_time = time.time()
     self.logger.info('Start training, Total Epochs: {:d} = Iterations per epoch {:d}'.format(epochs, iters_per_epoch))
     IoU = []
@@ -234,8 +236,9 @@ class PatchTrainer():
           # Forward pass through the model (and interpolation if needed)
           output1 = self.model1.predict(patched_image_adv,patched_label_adv.shape)
           output2 = self.model2.predict(patched_image_rand,patched_label_rand.shape)
+          F = torch.zeros(( self.feature_map_shape[1], self.feature_map_shape[2]), device=self.device)
           for i in range(image.shape[0]):
-            F = ((self.feature_maps_rand[i]-self.feature_maps_adv[i])*H[idx[i]]) + (H[idx[i]])**2
+            F += ((self.feature_maps_rand[i]-self.feature_maps_adv[i])*H[idx[i]]) + (H[idx[i]])**2
           #plt.imshow(output.argmax(dim =1)[0].cpu().detach().numpy())
           #plt.show()
           #break
