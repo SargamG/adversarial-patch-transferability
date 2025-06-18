@@ -80,14 +80,20 @@ class PatchTrainer():
       self.max_iters = self.end_epoch * self.iters_per_epoch
 
       ## Getting the model
-      self.model = Models(self.config)
-      self.model.get()
+      self.model1 = Models(self.config)
+      self.model1.get()
+
+      self.model2 = Models(self.config)
+      self.model2.get()
 
       ## loss
       self.criterion = PatchLoss(self.config)
       ## optimizer
       # Initialize adversarial patch (random noise)
-      self.patch = torch.rand((3, self.patch_size, self.patch_size), 
+      self.adv_patch = torch.rand((3, self.patch_size, self.patch_size), 
+                              requires_grad=True, 
+                              device=self.device)
+      self.rand_patch = torch.rand((3, self.patch_size, self.patch_size), 
                               requires_grad=True, 
                               device=self.device)
       
@@ -125,17 +131,28 @@ class PatchTrainer():
         self.layer_name = 'pretrained.layer2.3.relu'
         self.feature_map_shape=[512,32,32]
 
-      self.feature_maps = None
+      self.feature_maps_adv = None
+      self.feature_maps_rand = None
     
   # Hook to store feature map
-  def hook(self, module, input, output):
-      self.feature_maps = output
+  def hook1(self, module, input, output):
+      self.feature_maps_adv = output
       output.retain_grad()
 
-  def register_forward_hook(self):
-    for name, module in self.model.model.named_modules():
+  def hook2(self, module, input, output):
+      self.feature_maps_rand = output
+      output.retain_grad()
+
+  def register_forward_hook1(self):
+    for name, module in self.model1.model.named_modules():
         if name == self.layer_name:
-          module.register_forward_hook(self.hook)
+          module.register_forward_hook(self.hook1)
+          break
+
+  def register_forward_hook2(self):
+    for name, module in self.model2.model.named_modules():
+        if name == self.layer_name:
+          module.register_forward_hook(self.hook2)
           break
   
   def get_agg_gradient(self):
@@ -148,28 +165,28 @@ class PatchTrainer():
           image, true_label = image.to(self.device), true_label.to(self.device)
   
           # 1. Apply the patch to the image
-          patched_image, patched_label = self.apply_patch(image,true_label,self.patch)
+          patched_image, patched_label = self.apply_patch(image,true_label,self.adv_patch)
   
           # 2. Forward pass
-          output = self.model.predict(patched_image,patched_label.shape)
+          output = self.model1.predict(patched_image,patched_label.shape)
   
           # 3. Compute CE loss
           loss = self.criterion.compute_gradloss(output, patched_label)
   
           # 4. Compute gradient w.r.t. patch and update patch
-          self.model.model.zero_grad()
-          if self.patch.grad is not None:
-              self.patch.grad.zero_()
+          self.model1.model.zero_grad()
+          if self.adv_patch.grad is not None:
+              self.adv_patch.grad.zero_()
           loss.backward(retain_graph=True)
           with torch.no_grad():
-              self.patch += self.epsilon * self.patch.grad.data.sign()
-              self.patch.clamp_(0, 1)  # Keep pixel values in valid range
-          grad_feature_map = self.feature_maps.grad  # Only works if feature_maps.requires_grad=True
+              self.adv_patch += self.epsilon * self.adv_patch.grad.data.sign()
+              self.adv_patch.clamp_(0, 1)  # Keep pixel values in valid range
+          grad_feature_map = self.feature_maps_adv.grad  # Only works if feature_maps.requires_grad=True
   
           # If not requires_grad, use autograd.grad instead
           if grad_feature_map is None:
               print("grad_feature_map is None")
-              grad_feature_map = torch.autograd.grad(loss, self.feature_maps, retain_graph=True)[0]
+              grad_feature_map = torch.autograd.grad(loss, self.feature_maps_adv, retain_graph=True)[0]
   
           # 5. Normalize and aggregate
           # grad_feature_map /= torch.norm(grad_feature_map, p=2, dim=(1,2,3), keepdim=True) + 1e-8
@@ -205,7 +222,8 @@ class PatchTrainer():
               
           
           # Randomly place patch in image and label(put ignore index)
-          patched_image, patched_label = self.apply_patch(image,true_label,self.patch)
+          patched_image_adv, patched_label_adv = self.apply_patch(image,true_label,self.adv_patch)
+          patched_image_rand, patched_label_rand = self.apply_patch(image,true_label,self.rand_patch)
           # fig = plt.figure()
           # ax = fig.add_subplot(1,2,1)
           # ax.imshow(patched_image[0].permute(1,2,0).cpu().detach().numpy())
@@ -214,9 +232,10 @@ class PatchTrainer():
           # plt.show()
 
           # Forward pass through the model (and interpolation if needed)
-          output = self.model.predict(patched_image,patched_label.shape)
+          output1 = self.model1.predict(patched_image_adv,patched_label_adv.shape)
+          output2 = self.model2.predict(patched_image_rand,patched_label_rand.shape)
           for i in range(image.shape[0]):
-            F = (self.feature_maps[i]*H[idx[i]]) + (H[idx[i]])**2
+            F = ((self.feature_maps_rand[i]-self.feature_maps_adv[i])*H[idx[i]]) + (H[idx[i]])**2
           #plt.imshow(output.argmax(dim =1)[0].cpu().detach().numpy())
           #plt.show()
           #break
@@ -228,22 +247,23 @@ class PatchTrainer():
           #break
 
           ## metrics
-          self.metric.update(output, patched_label)
+          self.metric.update(output1, patched_label_adv)
           pixAcc, mIoU = self.metric.get()
 
           # Backpropagation
-          self.model.model.zero_grad()
-          if self.patch.grad is not None:
-            self.patch.grad.zero_()
+          self.model1.model.zero_grad()
+          self.model2.model.zero_grad()
+          if self.adv_patch.grad is not None:
+            self.adv_patch.grad.zero_()
           loss.backward()
           with torch.no_grad():
               #self.patch += self.epsilon * self.patch.grad.sign()  # Update patch using FGSM-style ascent
-              grad = self.patch.grad
+              grad = self.adv_patch.grad
               norm_grad = grad/ (torch.norm(grad) + 1e-8)
               momentum = (0.9*momentum) + norm_grad
-              self.patch += self.epsilon * momentum.sign()
+              self.adv_patch += self.epsilon * momentum.sign()
               #self.patch += self.epsilon * self.patch.grad.data.sign()
-              self.patch.clamp_(0, 1)  # Keep pixel values in valid range
+              self.adv_patch.clamp_(0, 1)  # Keep pixel values in valid range
 
           ## ETA
           eta_seconds = ((time.time() - start_time) / self.current_iteration) * (iters_per_epoch*epochs - self.current_iteration)
