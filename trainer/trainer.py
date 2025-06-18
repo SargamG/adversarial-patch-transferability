@@ -205,6 +205,7 @@ class PatchTrainer():
     self.feature_maps_adv = None
     self.feature_maps_rand = None
     H /= torch.norm(H, p=2, dim=(2,3), keepdim=True) + 1e-8 
+    self.logger.info(f'H.shape: {H.shape}')
     start_time = time.time()
     self.logger.info('Start training, Total Epochs: {:d} = Iterations per epoch {:d}'.format(epochs, iters_per_epoch))
     IoU = []
