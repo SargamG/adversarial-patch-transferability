@@ -22,8 +22,8 @@ dataset:
 patch:
   size: 200
   #loc: "corner"
-  loc: "random"
-  #loc: "center"
+  #loc: "random"
+  loc: "center"
 
 
 ### 3.Optimizer
