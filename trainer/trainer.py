@@ -18,6 +18,7 @@ import torch
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
 
 class PatchTrainer():
   def __init__(self,config,main_logger,model_name):
@@ -291,7 +292,7 @@ class PatchTrainer():
       self.logger.info('-------------------------------------------------------------------------------------------------')
       self.logger.info("Epochs: {:d}/{:d}, Average loss: {:.3f}, Average mIoU: {:.3f}, Average pixAcc: {:.3f}".format(
         self.current_epoch, self.epochs, average_loss, average_mIoU, average_pixAcc))
-
+      pickle.dump( self.adv_patch, open(self.config.experiment.log_patch_address+self.config.model.name+"_bbfa_modifiedloss"+".p", "wb" ) )
       
       #self.test() ## Doing 1 iteration of testing
       self.logger.info('-------------------------------------------------------------------------------------------------')
