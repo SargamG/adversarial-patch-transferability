@@ -240,7 +240,7 @@ class PatchTrainer():
           output2 = self.model2.predict(patched_image_rand,patched_label_rand.shape)
           #F = torch.zeros(( self.feature_map_shape[1], self.feature_map_shape[2]), device=self.device)
           for i in range(image.shape[0]):
-            F = ((self.feature_maps_rand[i]-self.feature_maps_adv[i])*H[idx[i]]) + (H[idx[i]])**2
+            F = ((self.feature_maps_adv[i]-self.feature_maps_rand[i])*H[idx[i]]) + (H[idx[i]])**2
           #plt.imshow(output.argmax(dim =1)[0].cpu().detach().numpy())
           #plt.show()
           #break
