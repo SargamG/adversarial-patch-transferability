@@ -64,7 +64,7 @@ class PatchTrainer():
       
       self.train_dataloader = torch.utils.data.DataLoader(dataset=cityscape_train,
                                               batch_size=self.batch_train,
-                                              shuffle=config.train.shuffle,
+                                              shuffle=False,
                                               num_workers=config.train.num_workers,
                                               pin_memory=config.train.pin_memory,
                                               drop_last=config.train.drop_last)
@@ -162,6 +162,7 @@ class PatchTrainer():
     for epoch in range(30):
       self.logger.info(f"\nStarting gradient epoch {epoch+1}/30...")
       for i_iter, batch in enumerate(self.train_dataloader, 0):
+        if i_iter<1000:
           image, true_label,_, _, _, idx = batch
           image, true_label = image.to(self.device), true_label.to(self.device)
   
@@ -217,6 +218,7 @@ class PatchTrainer():
       samplecnt = 0
       momentum = torch.tensor(0, dtype=torch.float32).to(self.device)
       for i_iter, batch in enumerate(self.train_dataloader, 0):
+        if i_iter<1000:
           self.current_iteration += 1
           samplecnt += batch[0].shape[0]
           image, true_label,_, _, _, idx = batch
@@ -271,14 +273,14 @@ class PatchTrainer():
               self.adv_patch.clamp_(0, 1)  # Keep pixel values in valid range
 
           ## ETA
-          eta_seconds = ((time.time() - start_time) / self.current_iteration) * (iters_per_epoch*epochs - self.current_iteration)
+          eta_seconds = ((time.time() - start_time) / self.current_iteration) * (1000*epochs - self.current_iteration)
           eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
 
           if i_iter % self.log_per_iters == 0:
             self.logger.info(
               "Epochs: {:d}/{:d} || Samples: {:d}/{:d} || Lr: {:.6f} || Loss: {:.4f} || mIoU: {:.4f} || Cost Time: {} || Estimated Time: {}".format(
                   self.current_epoch, self.end_epoch,
-                  samplecnt, self.batch_train*iters_per_epoch,
+                  samplecnt, 1000,
                   #self.optimizer.param_groups[0]['lr'],
                   self.epsilon,
                   loss.item(),
@@ -288,7 +290,7 @@ class PatchTrainer():
           
 
       average_pixAcc, average_mIoU = self.metric.get()
-      average_loss = total_loss/len(self.train_dataloader)
+      average_loss = total_loss/1000
       self.logger.info('-------------------------------------------------------------------------------------------------')
       self.logger.info("Epochs: {:d}/{:d}, Average loss: {:.3f}, Average mIoU: {:.3f}, Average pixAcc: {:.3f}".format(
         self.current_epoch, self.epochs, average_loss, average_mIoU, average_pixAcc))
