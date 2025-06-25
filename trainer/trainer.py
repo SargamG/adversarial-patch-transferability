@@ -292,8 +292,8 @@ class PatchTrainer():
       self.logger.info('-------------------------------------------------------------------------------------------------')
       self.logger.info("Epochs: {:d}/{:d}, Average loss: {:.3f}, Average mIoU: {:.3f}, Average pixAcc: {:.3f}".format(
         self.current_epoch, self.epochs, average_loss, average_mIoU, average_pixAcc))
-      safety = self.adv_patch.detach().cpu().clone()
-      pickle.dump( safety, open(self.config.experiment.log_patch_address+self.config.model.name+"_bbfa_modifiedloss"+".p", "wb" ) )
+      safety = self.adv_patch.clone()
+      pickle.dump( safety.detach(), open(self.config.experiment.log_patch_address+self.config.model.name+"_bbfa_modifiedloss"+".p", "wb" ) )
       
       #self.test() ## Doing 1 iteration of testing
       self.logger.info('-------------------------------------------------------------------------------------------------')
